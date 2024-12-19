@@ -4,6 +4,7 @@ import "./globals.css";
 import { SESSION_COOKIE_NAME } from "@/constants";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default async function RootLayout({
       >
         {/* <Header session={session} /> */}
         {children}
+        <Toaster />
       </body>
     </html>
   );
