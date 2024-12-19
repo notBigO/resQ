@@ -28,7 +28,6 @@ const AlertMap = () => {
   //   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch alerts from Firestore
   const fetchAlerts = async () => {
     try {
       const db = getFirestore();
@@ -52,18 +51,15 @@ const AlertMap = () => {
     }
   };
 
-  // Function to add alert layers to map
   const addAlertLayers = (alertList: Alert[]) => {
     if (!map.current) return;
 
-    // Remove existing layers and source if they exist
     if (map.current.getLayer("alert-points"))
       map.current.removeLayer("alert-points");
     if (map.current.getLayer("alert-heat"))
       map.current.removeLayer("alert-heat");
     if (map.current.getSource("alerts")) map.current.removeSource("alerts");
 
-    // Add new source
     map.current.addSource("alerts", {
       type: "geojson",
       data: {
@@ -85,7 +81,6 @@ const AlertMap = () => {
       },
     });
 
-    // Add circle layer
     map.current.addLayer({
       id: "alert-points",
       type: "circle",
@@ -99,7 +94,6 @@ const AlertMap = () => {
       },
     });
 
-    // Add heat map layer
     map.current.addLayer({
       id: "alert-heat",
       type: "heatmap",
@@ -141,7 +135,6 @@ const AlertMap = () => {
       }
     });
 
-    // Change cursor on hover
     map.current.on("mouseenter", "alert-points", () => {
       if (map.current) map.current.getCanvas().style.cursor = "pointer";
     });
@@ -151,7 +144,6 @@ const AlertMap = () => {
     });
   };
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainer.current) return;
 
@@ -165,7 +157,6 @@ const AlertMap = () => {
       projection: "globe",
     });
 
-    // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl());
 
     map.current.on("style.load", () => {
