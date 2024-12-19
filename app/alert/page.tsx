@@ -8,9 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { MultiSelect } from "@/components/MultiSelect";
+import { getAuth } from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 const alertSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -27,8 +34,10 @@ const alertSchema = z.object({
 type AlertFormValues = z.infer<typeof alertSchema>;
 
 const CreateAlert = () => {
-  const router = useRouter();
   const { toast } = useToast();
+  const auth = getAuth();
+  const db = getFirestore();
+  const router = useRouter();
 
   const {
     register,
@@ -72,25 +81,37 @@ const CreateAlert = () => {
 
   const onSubmit = async (data: AlertFormValues) => {
     try {
-      const response = await fetch("/api/alert", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const user = auth.currentUser;
 
-      if (!response.ok) {
-        throw new Error("Failed to create alert");
+      if (!user) {
+        throw new Error("User is not authenticated");
       }
 
+      const alertData = {
+        ...data,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+      };
+
+      console.log("Alert Data: ", alertData);
+
+      await addDoc(collection(db, "alerts"), alertData);
+
       toast({
-        title: "Alert created",
-        description: "Your alert has been successfully created.",
-        // status: "success",
+        title: "Success",
+        description: "Alert created successfully!",
+        status: "success",
       });
 
-      //   router.push("/alerts");
+      setValue("title", "");
+      setValue("description", "");
+      setValue("location", []);
+      setValue("requirements", []);
+      setValue("tags", []);
+
+      setTimeout(() => {
+        router.push("/alerts");
+      }, 3000);
     } catch (error) {
       console.error("Error creating alert:", error);
       toast({
