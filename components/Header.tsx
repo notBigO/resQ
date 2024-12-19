@@ -13,9 +13,10 @@ import {
 import { useState } from "react";
 
 const NAV_LINKS = [
-  { name: "Create Alert", href: "/alert" },
-  { name: "My Alerts", href: "/my-alerts" },
-  { name: "Volunteering", href: "/my" },
+  { label: "Alerts", href: "/alerts" },
+  { label: "Create Alert", href: "/alert" },
+  // { label: "My Alerts", href: "/my-alerts" },
+  { label: "Volunteering", href: "/my-volunteering" },
 ] as const;
 
 export function Navbar({ session }: { session: string | null }) {

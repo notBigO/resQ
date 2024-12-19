@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { MultiSelect } from "@/components/MultiSelect";
+import MultiSelect from "@/components/MultiSelect";
 import { getAuth } from "firebase/auth";
 import {
   getFirestore,
@@ -29,6 +29,14 @@ const alertSchema = z.object({
     .array(z.string())
     .nonempty("At least one requirement is needed"),
   tags: z.array(z.string()).nonempty("At least one tag is needed"),
+  phNo: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(15, "Phone number must not exceed 15 digits")
+    .regex(
+      /^\+?[0-9]*$/,
+      "Phone number must contain only numbers and an optional '+'"
+    ),
 });
 
 type AlertFormValues = z.infer<typeof alertSchema>;
@@ -108,6 +116,7 @@ const CreateAlert = () => {
       setValue("location", []);
       setValue("requirements", []);
       setValue("tags", []);
+      setValue("phNo", "");
 
       setTimeout(() => {
         router.push("/alerts");
@@ -154,6 +163,20 @@ const CreateAlert = () => {
           />
           {errors.description && (
             <p className="text-sm text-red-600">{errors.description.message}</p>
+          )}
+        </div>
+
+        {/* Phone Number */}
+        <div className="mb-4">
+          <Label htmlFor="phNo">Phone Number</Label>
+          <Input
+            id="phNo"
+            type="text"
+            {...register("phNo")}
+            placeholder="Enter phone number"
+          />
+          {errors.phNo && (
+            <p className="text-sm text-red-600">{errors.phNo.message}</p>
           )}
         </div>
 
