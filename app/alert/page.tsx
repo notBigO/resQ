@@ -35,14 +35,13 @@ const CreateAlert = () => {
     handleSubmit,
     control,
     formState: { errors },
-    setValue, // To update the form values programmatically
+    setValue,
   } = useForm<AlertFormValues>({
     resolver: zodResolver(alertSchema),
   });
 
   const [locationFetching, setLocationFetching] = useState(false);
 
-  // Function to request user location and update the form fields
   const getLocation = () => {
     if (navigator.geolocation) {
       setLocationFetching(true);
@@ -88,10 +87,10 @@ const CreateAlert = () => {
       toast({
         title: "Alert created",
         description: "Your alert has been successfully created.",
-        status: "success",
+        // status: "success",
       });
 
-      router.push("/alerts");
+      //   router.push("/alerts");
     } catch (error) {
       console.error("Error creating alert:", error);
       toast({
