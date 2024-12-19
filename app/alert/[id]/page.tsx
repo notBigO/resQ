@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 const AlertDetailsPage = () => {
   const [alert, setAlert] = useState<any | null>(null);
@@ -33,7 +34,6 @@ const AlertDetailsPage = () => {
       const db = getFirestore();
       const alertRef = doc(db, "alerts", id);
       const alertDoc = await getDoc(alertRef);
-
       if (alertDoc.exists()) {
         setAlert(alertDoc.data());
       } else {
@@ -62,7 +62,7 @@ const AlertDetailsPage = () => {
       );
       const participantsSnap = await getDocs(participantsQuery);
 
-      return !participantsSnap.empty; // Return true if user is already a participant
+      return !participantsSnap.empty;
     } catch (error) {
       console.error("Error checking volunteer status:", error);
       return false;
@@ -115,7 +115,7 @@ const AlertDetailsPage = () => {
     };
     if (id) fetchData();
   }, [id]);
-
+  console.log(alert);
   return (
     <div className="h-screen w-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       {loading ? (
@@ -137,7 +137,15 @@ const AlertDetailsPage = () => {
               </p>
               <p>{alert.description}</p>
               <p className="text-sm text-muted-foreground">
-                <strong>Location:</strong> {alert.location?.join(", ") || "N/A"}
+                <strong>Location:</strong> {alert.location?.join(", ") || "N/A"}{" "}
+                <Link
+                  href={`https://www.google.com/maps?q=${alert.location[0]},${alert.location[1]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 underline ml-2"
+                >
+                  View on Google Maps
+                </Link>
               </p>
               <p className="text-sm text-muted-foreground">
                 <strong>Requirements:</strong>{" "}
