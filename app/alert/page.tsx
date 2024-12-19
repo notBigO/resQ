@@ -89,7 +89,7 @@ const CreateAlert = () => {
 
       const alertData = {
         ...data,
-        createdBy: user.uid,
+        createdBy: user.displayName,
         createdAt: serverTimestamp(),
       };
 

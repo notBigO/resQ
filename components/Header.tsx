@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 
-const NAV_LINKS = [] as const;
+const NAV_LINKS = [
+  { name: "Create Alert", href: "/alert" },
+  { name: "My Alerts", href: "/my-alerts" },
+  { name: "Volunteering", href: "/my" },
+] as const;
 
 export function Navbar({ session }: { session: string | null }) {
   const user = useUserSession(session);
