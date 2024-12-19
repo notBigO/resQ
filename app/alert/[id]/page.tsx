@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { sendVolunteerEmailAction } from "@/actions/email";
 
 const AlertDetailsPage = () => {
   const [alert, setAlert] = useState<any | null>({}); // Initialize as empty object
@@ -70,6 +71,43 @@ const AlertDetailsPage = () => {
     }
   };
 
+  // const handleVolunteer = async () => {
+  //   try {
+  //     const auth = getAuth();
+  //     const user = auth.currentUser;
+
+  //     if (!user) {
+  //       toast({ title: "Error", description: "You must be logged in." });
+  //       return;
+  //     }
+
+  //     const alreadyVolunteer = await checkVolunteerStatus();
+  //     if (alreadyVolunteer) {
+  //       toast({ title: "Error", description: "You are already volunteering." });
+  //       return;
+  //     }
+
+  //     const db = getFirestore();
+  //     const participantsRef = collection(db, "alerts", id, "participants");
+
+  //     await addDoc(participantsRef, {
+  //       userId: user.uid,
+  //       name: user.displayName || "Anonymous",
+  //       message: volunteerMessage,
+  //       joinedAt: serverTimestamp(),
+  //     });
+
+  //     toast({
+  //       title: "Success",
+  //       description: "You registered as a volunteer!",
+  //     });
+  //     setVolunteerMessage("");
+  //     setAlreadyVolunteering(true);
+  //   } catch (error) {
+  //     console.error("Error registering as a volunteer:", error);
+  //     toast({ title: "Error", description: "Failed to register." });
+  //   }
+  // };
   const handleVolunteer = async () => {
     try {
       const auth = getAuth();
@@ -96,10 +134,31 @@ const AlertDetailsPage = () => {
         joinedAt: serverTimestamp(),
       });
 
-      toast({
-        title: "Success",
-        description: "You registered as a volunteer!",
+      const emailResult = await sendVolunteerEmailAction({
+        userEmail: user.email!,
+        userName: user.displayName || "Anonymous",
+        alertTitle: alert.title,
+        alertDescription: alert.description,
+        alertLocation: alert.location?.join(", ") || "N/A",
+        alertPhoneNumber: alert.phNo,
+        volunteerMessage: volunteerMessage,
       });
+
+      if (!emailResult.success) {
+        console.error("Failed to send email:", emailResult.error);
+        toast({
+          title: "Partial Success",
+          description:
+            "You're registered as a volunteer, but we couldn't send the confirmation email.",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description:
+            "You registered as a volunteer and a confirmation email has been sent.",
+        });
+      }
+
       setVolunteerMessage("");
       setAlreadyVolunteering(true);
     } catch (error) {
@@ -107,7 +166,6 @@ const AlertDetailsPage = () => {
       toast({ title: "Error", description: "Failed to register." });
     }
   };
-
   useEffect(() => {
     const fetchData = async () => {
       await fetchAlertDetails();
