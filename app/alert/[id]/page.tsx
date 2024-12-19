@@ -116,7 +116,7 @@ const AlertDetailsPage = () => {
     };
     if (id) fetchData();
   }, [id]);
-
+  console.log(alert);
   return (
     <div className="h-screen w-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       {loading ? (
@@ -149,6 +149,10 @@ const AlertDetailsPage = () => {
                     View on Google Maps
                   </Link>
                 )}
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                <strong>Phone Number:</strong> {alert.phNo}
               </p>
               <p className="text-sm text-muted-foreground">
                 <strong>Requirements:</strong>{" "}
