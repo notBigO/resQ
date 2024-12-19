@@ -5,7 +5,7 @@ import { signInWithGoogle, signOutWithGoogle } from "@/app/lib/firebase/auth";
 import { useUserSession } from "@/hooks/use-auth";
 
 export function Header({ session }: { session: string | null }) {
-  const userSessionId = useUserSession(session);
+  const user = useUserSession(session);
 
   const handleSignIn = async () => {
     const userUid = await signInWithGoogle();
@@ -19,7 +19,7 @@ export function Header({ session }: { session: string | null }) {
     await removeSession();
   };
 
-  if (!userSessionId) {
+  if (!user) {
     return (
       <header>
         <button onClick={handleSignIn}>Sign In</button>
@@ -29,6 +29,17 @@ export function Header({ session }: { session: string | null }) {
 
   return (
     <header>
+      <div>
+        <p>Welcome, {user.displayName || "User"}!</p>
+        <p>Email: {user.email}</p>
+        {user.photoURL && (
+          <img
+            src={user.photoURL}
+            alt="User Avatar"
+            style={{ width: "40px", borderRadius: "50%" }}
+          />
+        )}
+      </div>
       <button onClick={handleSignOut}>Sign Out</button>
     </header>
   );

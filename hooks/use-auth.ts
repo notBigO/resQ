@@ -1,21 +1,30 @@
 import { useEffect, useState } from "react";
-
 import { onAuthStateChanged } from "@/app/lib/firebase/auth";
 
-export function useUserSession(InitSession: string | null) {
-  const [userUid, setUserUid] = useState<string | null>(InitSession);
+export function useUserSession(initialSession: string | null) {
+  const [user, setUser] = useState<null | {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    photoURL?: string;
+  }>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(async (authUser) => {
       if (authUser) {
-        setUserUid(authUser.uid);
+        setUser({
+          uid: authUser.uid,
+          email: authUser.email || null,
+          displayName: authUser.displayName || null,
+          photoURL: authUser.photoURL || null,
+        });
       } else {
-        setUserUid(null);
+        setUser(null);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  return userUid;
+  return user;
 }
