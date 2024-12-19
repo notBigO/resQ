@@ -21,6 +21,9 @@ import { useRouter } from "next/navigation";
 
 const AlertsPage = () => {
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [filteredAlerts, setFilteredAlerts] = useState<any[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string>("All");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -36,11 +39,29 @@ const AlertsPage = () => {
         ...doc.data(),
       }));
 
+      const allTags = fetchedAlerts
+        .flatMap((alert) => alert.tags || [])
+        .filter((tag, index, self) => self.indexOf(tag) === index);
+
       setAlerts(fetchedAlerts);
+      setFilteredAlerts(fetchedAlerts);
+      setTags(["All", ...allTags]);
     } catch (error) {
       console.error("Error fetching alerts:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (tag: string) => {
+    setSelectedTag(tag);
+    if (tag === "All") {
+      setFilteredAlerts(alerts);
+    } else {
+      const filtered = alerts.filter(
+        (alert) => alert.tags && alert.tags.includes(tag)
+      );
+      setFilteredAlerts(filtered);
     }
   };
 
@@ -52,17 +73,36 @@ const AlertsPage = () => {
     <div className="max-w-4xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Alerts</h1>
 
+      {/* Filter Section */}
+      <div className="mb-4">
+        <label htmlFor="tags-filter" className="block text-sm font-medium mb-2">
+          Filter by Tag:
+        </label>
+        <select
+          id="tags-filter"
+          className="border rounded-lg p-2 w-full"
+          value={selectedTag}
+          onChange={(e) => handleFilterChange(e.target.value)}
+        >
+          {tags.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {loading ? (
         <div>
           <Skeleton className="h-24 mb-4" />
           <Skeleton className="h-24 mb-4" />
           <Skeleton className="h-24 mb-4" />
         </div>
-      ) : alerts.length === 0 ? (
+      ) : filteredAlerts.length === 0 ? (
         <p>No alerts found.</p>
       ) : (
         <div className="space-y-4">
-          {alerts.map((alert) => (
+          {filteredAlerts.map((alert) => (
             <Card key={alert.id} className="border">
               <CardHeader>
                 <CardTitle>{alert.title}</CardTitle>
