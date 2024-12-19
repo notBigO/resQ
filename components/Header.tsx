@@ -15,8 +15,8 @@ import { useState } from "react";
 const NAV_LINKS = [
   { label: "Alerts", href: "/alerts" },
   { label: "Create Alert", href: "/alert" },
-  // { label: "My Alerts", href: "/my-alerts" },
   { label: "Volunteering", href: "/my-volunteering" },
+  { label: "Heatmap", href: "/heatmap" },
 ] as const;
 
 export function Navbar({ session }: { session: string | null }) {
@@ -78,7 +78,7 @@ export function Navbar({ session }: { session: string | null }) {
     );
 
   return (
-    <nav className="sticky top-0 w-full z-50">
+    <nav className="bg-white w-full z-50">
       <div className="container mx-auto px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           <div className="text-lg font-bold text-gray-800 hover:text-gray-900 transition-colors duration-200">

@@ -18,17 +18,27 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const alertSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   location: z
     .array(z.number())
-    .length(2, "Location must include latitude and longitude"),
+    .length(2, "Location must include latitude and longitude")
+    .refine(
+      ([lat, lng]) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180,
+      "Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180"
+    ),
   requirements: z
     .array(z.string())
-    .nonempty("At least one requirement is needed"),
-  tags: z.array(z.string()).nonempty("At least one tag is needed"),
+    .nonempty("At least one requirement is needed")
+    .max(5, "Maximum 5 requirements allowed"),
+  tags: z
+    .array(z.string())
+    .nonempty("At least one tag is needed")
+    .max(5, "Maximum 5 tags allowed"),
   phNo: z
     .string()
     .min(10, "Phone number must be at least 10 digits")
@@ -41,54 +51,86 @@ const alertSchema = z.object({
 
 type AlertFormValues = z.infer<typeof alertSchema>;
 
+const REQUIREMENT_OPTIONS = [
+  { label: "Medical Supplies", value: "Medical Supplies" },
+  { label: "Volunteers", value: "Volunteers" },
+  { label: "Food", value: "Food" },
+  { label: "Shelter", value: "Shelter" },
+  { label: "Transportation", value: "Transportation" },
+  { label: "Water", value: "Water" },
+  { label: "Clothing", value: "Clothing" },
+  { label: "Medical Personnel", value: "Medical Personnel" },
+];
+
+const TAG_OPTIONS = [
+  { label: "Search & Rescue", value: "Search & Rescue" },
+  { label: "Flood", value: "Flood" },
+  { label: "Earthquake", value: "Earthquake" },
+  { label: "Tsunami", value: "Tsunami" },
+  { label: "Wildfire", value: "Wildfire" },
+  { label: "Medical Emergency", value: "Medical Emergency" },
+  { label: "Infrastructure", value: "Infrastructure" },
+  { label: "Evacuation", value: "Evacuation" },
+];
+
 const CreateAlert = () => {
   const { toast } = useToast();
   const auth = getAuth();
   const db = getFirestore();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locationFetching, setLocationFetching] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isValid },
     setValue,
+    reset,
   } = useForm<AlertFormValues>({
     resolver: zodResolver(alertSchema),
+    mode: "onChange",
   });
-
-  const [locationFetching, setLocationFetching] = useState(false);
 
   const getLocation = () => {
     if (navigator.geolocation) {
       setLocationFetching(true);
+      setLocationError(null);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setValue("location.0", position.coords.latitude);
-          setValue("location.1", position.coords.longitude);
+          setValue("location.0", position.coords.latitude, {
+            shouldValidate: true,
+          });
+          setValue("location.1", position.coords.longitude, {
+            shouldValidate: true,
+          });
           setLocationFetching(false);
         },
         (error) => {
           console.error("Error fetching location:", error);
-          toast({
-            title: "Error",
-            description: "Failed to get your location. Please try again.",
-            status: "error",
-          });
+          setLocationError(
+            error.code === error.PERMISSION_DENIED
+              ? "Location permission denied. Please enable location access or enter coordinates manually."
+              : "Failed to get your location. Please try again or enter coordinates manually."
+          );
           setLocationFetching(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
         }
       );
     } else {
-      toast({
-        title: "Error",
-        description: "Geolocation is not supported by your browser.",
-        status: "error",
-      });
+      setLocationError("Geolocation is not supported by your browser.");
     }
   };
 
   const onSubmit = async (data: AlertFormValues) => {
     try {
+      setIsSubmitting(true);
       const user = auth.currentUser;
 
       if (!user) {
@@ -97,56 +139,61 @@ const CreateAlert = () => {
 
       const alertData = {
         ...data,
-        createdBy: user.displayName,
+        createdBy: user.uid,
+        createdByName: user.displayName || "Anonymous",
         createdAt: serverTimestamp(),
+        status: "active",
+        volunteers: [],
       };
-
-      console.log("Alert Data: ", alertData);
 
       await addDoc(collection(db, "alerts"), alertData);
 
       toast({
         title: "Success",
-        description: "Alert created successfully!",
-        status: "success",
+        description:
+          "Alert created successfully! Redirecting to alerts page...",
       });
 
-      setValue("title", "");
-      setValue("description", "");
-      setValue("location", []);
-      setValue("requirements", []);
-      setValue("tags", []);
-      setValue("phNo", "");
+      reset();
 
+      // Delayed redirect to allow the user to see the success message
       setTimeout(() => {
         router.push("/alerts");
-      }, 3000);
+      }, 2000);
     } catch (error) {
       console.error("Error creating alert:", error);
       toast({
         title: "Error",
         description: "Failed to create the alert. Please try again.",
-        status: "error",
+        variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center">
+    <div className="min-h-screen w-full py-8 px-4 flex items-center justify-center bg-gray-50">
       <form
-        className="w-full max-w-lg bg-white p-6 rounded-lg shadow-md"
+        className="w-full max-w-lg bg-white p-8 rounded-lg shadow-lg space-y-6"
         onSubmit={handleSubmit(onSubmit)}
       >
-        <h2 className="text-xl font-bold mb-4">Create New Alert</h2>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-gray-900">Create New Alert</h2>
+          <p className="text-sm text-gray-500">
+            Fill out the details below to create a new emergency alert.
+          </p>
+        </div>
 
         {/* Title */}
-        <div className="mb-4">
+        <div className="space-y-2">
           <Label htmlFor="title">Title</Label>
           <Input
             id="title"
             type="text"
             {...register("title")}
             placeholder="Enter alert title"
+            className="w-full"
           />
           {errors.title && (
             <p className="text-sm text-red-600">{errors.title.message}</p>
@@ -154,12 +201,13 @@ const CreateAlert = () => {
         </div>
 
         {/* Description */}
-        <div className="mb-4">
+        <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
             {...register("description")}
-            placeholder="Describe the alert"
+            placeholder="Describe the emergency situation and needed assistance"
+            className="min-h-[100px]"
           />
           {errors.description && (
             <p className="text-sm text-red-600">{errors.description.message}</p>
@@ -167,13 +215,13 @@ const CreateAlert = () => {
         </div>
 
         {/* Phone Number */}
-        <div className="mb-4">
-          <Label htmlFor="phNo">Phone Number</Label>
+        <div className="space-y-2">
+          <Label htmlFor="phNo">Contact Phone Number</Label>
           <Input
             id="phNo"
-            type="text"
+            type="tel"
             {...register("phNo")}
-            placeholder="Enter phone number"
+            placeholder="e.g., +1234567890"
           />
           {errors.phNo && (
             <p className="text-sm text-red-600">{errors.phNo.message}</p>
@@ -181,50 +229,55 @@ const CreateAlert = () => {
         </div>
 
         {/* Location */}
-        <div className="mb-4">
-          <Label>Location (Latitude, Longitude)</Label>
-          <div className="flex space-x-2">
+        <div className="space-y-2">
+          <Label>Location</Label>
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               type="number"
               step="any"
               placeholder="Latitude"
-              {...register("location.0", {
-                valueAsNumber: true,
-              })}
+              {...register("location.0", { valueAsNumber: true })}
             />
             <Input
               type="number"
               step="any"
               placeholder="Longitude"
-              {...register("location.1", {
-                valueAsNumber: true,
-              })}
+              {...register("location.1", { valueAsNumber: true })}
             />
             <Button
               type="button"
               onClick={getLocation}
               disabled={locationFetching}
+              variant="outline"
+              className="whitespace-nowrap"
             >
-              {locationFetching ? "Fetching..." : "Use My Location"}
+              {locationFetching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Getting Location...
+                </>
+              ) : (
+                "Use My Location"
+              )}
             </Button>
           </div>
+          {locationError && (
+            <Alert variant="destructive">
+              <AlertDescription>{locationError}</AlertDescription>
+            </Alert>
+          )}
           {errors.location && (
             <p className="text-sm text-red-600">{errors.location.message}</p>
           )}
         </div>
 
         {/* Requirements */}
-        <div className="mb-4">
+        <div className="space-y-2">
           <Label htmlFor="requirements">Requirements</Label>
           <MultiSelect
             control={control}
             name="requirements"
-            options={[
-              { label: "Medical Supplies", value: "Medical Supplies" },
-              { label: "Volunteers", value: "Volunteers" },
-              { label: "Food", value: "Food" },
-              { label: "Shelter", value: "Shelter" },
-            ]}
+            options={REQUIREMENT_OPTIONS}
           />
           {errors.requirements && (
             <p className="text-sm text-red-600">
@@ -234,27 +287,28 @@ const CreateAlert = () => {
         </div>
 
         {/* Tags */}
-        <div className="mb-4">
-          <Label htmlFor="tags">Tags</Label>
-          <MultiSelect
-            control={control}
-            name="tags"
-            options={[
-              { label: "Search & Rescue", value: "Search & Rescue" },
-              { label: "Flood", value: "Flood" },
-              { label: "Earthquake", value: "Earthquake" },
-              { label: "Tsunami", value: "Tsunami" },
-              { label: "Wildfire", value: "Wildfire" },
-            ]}
-          />
+        <div className="space-y-2">
+          <Label htmlFor="tags">Emergency Type Tags</Label>
+          <MultiSelect control={control} name="tags" options={TAG_OPTIONS} />
           {errors.tags && (
             <p className="text-sm text-red-600">{errors.tags.message}</p>
           )}
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full">
-          Create Alert
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting || !isValid}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Alert...
+            </>
+          ) : (
+            "Create Alert"
+          )}
         </Button>
       </form>
     </div>

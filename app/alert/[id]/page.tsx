@@ -21,10 +21,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { sendVolunteerEmailAction } from "@/actions/email";
+import { Loader2 } from "lucide-react";
 
 const AlertDetailsPage = () => {
-  const [alert, setAlert] = useState<any | null>({}); // Initialize as empty object
+  const [alert, setAlert] = useState<any | null>({});
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [volunteerMessage, setVolunteerMessage] = useState("");
   const [alreadyVolunteering, setAlreadyVolunteering] = useState(false);
   const { id } = useParams();
@@ -64,52 +66,16 @@ const AlertDetailsPage = () => {
       );
       const participantsSnap = await getDocs(participantsQuery);
 
-      return !participantsSnap.empty; // Return true if user is already a participant
+      return !participantsSnap.empty;
     } catch (error) {
       console.error("Error checking volunteer status:", error);
       return false;
     }
   };
 
-  // const handleVolunteer = async () => {
-  //   try {
-  //     const auth = getAuth();
-  //     const user = auth.currentUser;
-
-  //     if (!user) {
-  //       toast({ title: "Error", description: "You must be logged in." });
-  //       return;
-  //     }
-
-  //     const alreadyVolunteer = await checkVolunteerStatus();
-  //     if (alreadyVolunteer) {
-  //       toast({ title: "Error", description: "You are already volunteering." });
-  //       return;
-  //     }
-
-  //     const db = getFirestore();
-  //     const participantsRef = collection(db, "alerts", id, "participants");
-
-  //     await addDoc(participantsRef, {
-  //       userId: user.uid,
-  //       name: user.displayName || "Anonymous",
-  //       message: volunteerMessage,
-  //       joinedAt: serverTimestamp(),
-  //     });
-
-  //     toast({
-  //       title: "Success",
-  //       description: "You registered as a volunteer!",
-  //     });
-  //     setVolunteerMessage("");
-  //     setAlreadyVolunteering(true);
-  //   } catch (error) {
-  //     console.error("Error registering as a volunteer:", error);
-  //     toast({ title: "Error", description: "Failed to register." });
-  //   }
-  // };
   const handleVolunteer = async () => {
     try {
+      setIsSubmitting(true);
       const auth = getAuth();
       const user = auth.currentUser;
 
@@ -164,8 +130,11 @@ const AlertDetailsPage = () => {
     } catch (error) {
       console.error("Error registering as a volunteer:", error);
       toast({ title: "Error", description: "Failed to register." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
   useEffect(() => {
     const fetchData = async () => {
       await fetchAlertDetails();
@@ -174,7 +143,7 @@ const AlertDetailsPage = () => {
     };
     if (id) fetchData();
   }, [id]);
-  console.log(alert);
+
   return (
     <div className="h-screen w-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       {loading ? (
@@ -208,7 +177,6 @@ const AlertDetailsPage = () => {
                   </Link>
                 )}
               </p>
-
               <p className="text-sm text-muted-foreground">
                 <strong>Phone Number:</strong> {alert.phNo}
               </p>
@@ -225,7 +193,6 @@ const AlertDetailsPage = () => {
             </CardContent>
           </Card>
 
-          {/* Volunteer Form */}
           <div className="mt-8 bg-white shadow-md p-6 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">
               {alreadyVolunteering
@@ -245,8 +212,19 @@ const AlertDetailsPage = () => {
                   onChange={(e) => setVolunteerMessage(e.target.value)}
                   className="mb-4"
                 />
-                <Button onClick={handleVolunteer} className="w-full">
-                  Volunteer Now
+                <Button
+                  onClick={handleVolunteer}
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    "Volunteer Now"
+                  )}
                 </Button>
               </>
             )}
