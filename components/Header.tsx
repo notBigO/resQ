@@ -13,8 +13,9 @@ import {
 import { useState } from "react";
 
 const NAV_LINKS = [
+  { label: "Alerts", href: "/alerts" },
   { label: "Create Alert", href: "/alert" },
-  { label: "My Alerts", href: "/my-alerts" },
+  // { label: "My Alerts", href: "/my-alerts" },
   { label: "Volunteering", href: "/my-volunteering" },
 ] as const;
 
